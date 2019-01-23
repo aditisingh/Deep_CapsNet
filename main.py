@@ -101,8 +101,8 @@ def test(model):
         print('Model Restored')
         acc_test, loss_test, pred_test, vector_test = evaluate(sess, model, x_test, y_test)
         y_corr=np.argmax(y_test,axis=1)
-        np.save('results/brain/vector_train.npy',vector_test)
-        np.save('results/brain/files_train.npy',files_test)
+        np.save('results/brain/features_train.npy',vector_test)
+        np.save('results/brain/files_feat_train.npy',files_test)
         precision, recall, fscore, support = score(y_corr,pred_test)
         # df = {label + 'precision': precision1.tolist(), label + 'recall': recall1.tolist(),
         #       label + 'fscore': fscore1.tolist()}

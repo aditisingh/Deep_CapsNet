@@ -196,7 +196,7 @@ def evaluate(sess, model, x, y):
         start_val = i * args.batch_size
         end_val = start_val + args.batch_size
         x_b, y_b = get_next_batch(x, y, start_val, end_val)
-        acc_batch, loss_batch, pred_batch,vector_batch = sess.run([model.accuracy, model.total_loss, model.y_pred,model.caps2_output_masked],
+        acc_batch, loss_batch, pred_batch,vector_batch = sess.run([model.accuracy, model.total_loss, model.y_pred,model.fc2],#caps2_output_masked],
                                                      feed_dict={model.X: x_b, model.Y: y_b})
         vector_all.append(vector_batch)
         pred_all = np.append(pred_all, pred_batch)

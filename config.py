@@ -14,7 +14,7 @@ parser.add_argument('--alpha', default=0.0005, help='Regularization coefficient 
 
 # For training
 parser.add_argument('--mode', default='test', help='train, test, visualize, or adv_attack')
-parser.add_argument('--batch_size', default=47, help='Batch size')
+parser.add_argument('--batch_size', default=50, help='Batch size')
 parser.add_argument('--epoch', default=500, help='Total number of training epochs')
 parser.add_argument('--iter_routing', default=3, help='Number of routing iterations')
 parser.add_argument('--stddev', default=0.01, help='std for W initializer')

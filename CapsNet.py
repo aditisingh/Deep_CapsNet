@@ -67,9 +67,9 @@ class CapsNet:
         with tf.variable_scope('Decoder'):
             fc1 = tf.layers.dense(decoder_input, n_hidden1, activation=tf.nn.relu, name="FC1")
             # [batch_size, 512]
-            fc2 = tf.layers.dense(fc1, n_hidden2, activation=tf.nn.relu, name="FC2")
+            self.fc2 = tf.layers.dense(fc1, n_hidden2, activation=tf.nn.relu, name="FC2")
             # [batch_size, 1024]
-            self.decoder_output = tf.layers.dense(fc2, n_output, activation=tf.nn.sigmoid, name="FC3")
+            self.decoder_output = tf.layers.dense(self.fc2, n_output, activation=tf.nn.sigmoid, name="FC3")
             # [batch_size, 784]
 
     def loss(self):
