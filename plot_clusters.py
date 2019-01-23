@@ -13,7 +13,7 @@ X_embedded = TSNE(n_components=2).fit_transform(X1)
 kmeans = KMeans(n_clusters=20, random_state=0).fit_predict(X_embedded)
 
 #color is same for same class type: gnd truth, number allocated in the cluster number
-plt.scatter(X_embedded[:,0],X_embedded[:,1],c=kmeans)
+plt.scatter(X_embedded[:,0],X_embedded[:,1],c=kmeans,cmap='jet')
 for i, y in enumerate(Y):
      plt.annotate(y,(X_embedded[i,0],X_embedded[i,1]))
 
