@@ -7,23 +7,83 @@ import numpy as np
 from scipy.misc import imread, imresize
 import matplotlib.pyplot as plt
 import random
+from PIL import Image
 from download import download_fashion_mnist
+from img_aug import central_scale_images, rotate_images, flip_images, add_salt_pepper_noise
+
+# def load_info(dirpath):  # image, labels, filename, features
+#     files = os.listdir(dirpath)
+#     im = []
+    # lbl = []
+    # filenames = []
+    # for f in files:
+    #     # print(f)
+    #     if f[-5]!='0' and f[-5]!='2':
+    #         im.append(imresize(imread(dirpath + f),(args.img_w,args.img_h,args.n_ch)))
+    #         # if f[-5]=='0':
+    #         #     cl_lbl=[1,0,0,0,0,0]
+    #         if f[-5]=='1':
+    #             cl_lbl=[1,0,0,0]
+    #         # elif f[-5]=='2':
+    #         #     cl_lbl=[0,1,0,0,0]
+    #         elif f[-5]=='3':
+    #             cl_lbl=[0,1,0,0]
+    #         elif f[-5]=='4':
+    #             cl_lbl=[0,0,1,0]
+    #         elif f[-5]=='5':
+    #             cl_lbl=[0,0,0,1]
+    #         lbl.append(cl_lbl)
+    #         filenames.append(dirpath + f)
+    # return im, lbl, filenames
 
 def load_info(dirpath):  # image, labels, filename, features
     files = os.listdir(dirpath)
     im = []
     lbl = []
     filenames = []
+    lbl_names=['neun','gfap','s100','apc','iba','reca1']
     for f in files:
         # print(f)
-        im.append(imresize(imread(dirpath + f),(args.img_w,args.img_h,args.n_ch)))
-        if f[0]=='0':
-            cl_lbl=[1,0]
-        elif f[0]=='1':
-            cl_lbl=[0,1]
-        lbl.append(cl_lbl)
+        img=Image.open(dirpath+f)
+        imgArray=np.zeros((img.n_frames,args.img_w,args.img_h),np.uint8)#(img.n_frames,args.img_w,args.img_h),np.uint8)
+        for frame in range(img.n_frames):
+            img.seek(frame)
+            img1 = img.resize((args.img_w,args.img_h))#,Image.ANTIALIAS)
+            imgArray[frame,:,:] = img1
+            # frame = frame + 1
+        imgArray=imgArray.reshape(args.img_w, args.img_h,img.n_frames)
+        im.append(imgArray)
+        cl_indices=[f.index(ll)+len(ll)+1 for ll in lbl_names]
+        cl_lbl=[int(f[id]) for id in cl_indices]
+        if cl_lbl[0]==1:
+            lbl.append([0,1,0,0,0,0])
+        elif cl_lbl[1]==1:
+            lbl.append([0,0,1,0,0,0])
+        elif cl_lbl[3]==1:
+            lbl.append([0,0,0,1,0,0])
+        elif cl_lbl[4]==1:
+            lbl.append([0,0,0,0,1,0])
+        elif cl_lbl[5]==1:
+            lbl.append([0,0,0,0,0,1])
+        else:
+            lbl.append([0,0,0,0,0,0])
         filenames.append(dirpath + f)
-    return im, lbl, filenames
+    # scaled_imgs = central_scale_images(im,[0.9])
+    # flip_imgs = flip_images(im)
+    # rotate_imgs = rotate_images(im, -90, 90, 3)
+    # # salt_imgs = add_salt_pepper_noise(im)
+    # im.extend(scaled_imgs)
+    # im.extend(flip_imgs)
+    # im.extend(rotate_imgs)
+    # im.extend(salt_imgs)
+    files1=[]
+    labels=[]
+    files1.extend(filenames)
+    labels.extend(lbl)
+    # for i in range(7):
+    #     files1.extend(filenames)
+    #     labels.extend(lbl)
+    return im, labels, files1
 
 def load_mnist(mode='train'):
     """
@@ -46,25 +106,27 @@ def load_mnist(mode='train'):
         return x_test, y_test
 
 def load_brain_data(mode='train'):
-    src_dir = '../astro_data_same_distribution/'
+    src_dir = '../../new_crops_7channel'
     if mode == 'train':
-        dirpath_tr = src_dir+'train/mturk/'
-        dirpath_val = src_dir+'valid/'
+        dirpath_tr = src_dir+'/'
+        # dirpath_val = src_dir+'valid/'
         x_train, y_train, _ = load_info(dirpath_tr)
-        mean_train=np.mean(x_train,axis=0)
-        std_train=np.mean(x_train,axis=0)
-        x_valid, y_valid, _ = load_info(dirpath_val)
-        x_valid=(x_valid-mean_train)/std_train
-        shuffle_ids = random.sample(range(len(y_train)), len(y_train))
-        x_train=[(x_train[x]-mean_train)/std_train for x in shuffle_ids]
-        y_train=[y_train[x] for x in shuffle_ids]
+        # x_valid, y_valid, _ = load_info(dirpath_val)
+        shuffle_ids = random.sample(range(len(y_train)), int(0.8*len(y_train)))
+        # mean_train=np.mean(x_train,axis=0)
+        # std_train=np.std(x_train,axis=0)
+        # x_valid=(x_valid-mean_train)/std_train
+        x_valid=[x_train[x] for x in range(len(y_train)) if x not in shuffle_ids]
+        y_valid = [y_train[x] for x in range(len(y_train)) if x not in shuffle_ids]
+        x_train = [x_train[x] for x in shuffle_ids]
+        y_train = [y_train[x] for x in shuffle_ids]
         x_train = np.array(x_train).reshape((-1, args.img_w, args.img_h, args.n_ch)).astype(np.float32)
         x_valid = np.array(x_valid).reshape((-1, args.img_w, args.img_h, args.n_ch)).astype(np.float32)
         y_train = np.array(y_train)
         y_valid = np.array(y_valid)
         return x_train, y_train, x_valid, y_valid
     elif mode == 'test':
-        dirpath = src_dir+'train/mturk/'
+        dirpath = src_dir+'test/'
         x_test, y_test, files_test = load_info(dirpath)
         mean_test=np.mean(x_test,axis=0)
         std_test=np.std(x_test,axis=0)
@@ -181,7 +243,9 @@ def load_and_save_to(start_epoch, num_train_batch):
     f_ = open(val_path, 'r')
     lines = f_.readlines()
     a = np.genfromtxt(lines[-1:], delimiter=',')
-    min_loss = np.min(a[1:, 2])
+    # print(a[1:,2])
+    min_loss = np.min(a[1:])
+    # np.min(a[1:,2])
     # loading the .csv file to continue recording the values
     f_train = open(train_path, 'a')
     f_val = open(val_path, 'a')
@@ -196,7 +260,7 @@ def evaluate(sess, model, x, y):
         start_val = i * args.batch_size
         end_val = start_val + args.batch_size
         x_b, y_b = get_next_batch(x, y, start_val, end_val)
-        acc_batch, loss_batch, pred_batch,vector_batch = sess.run([model.accuracy, model.total_loss, model.y_pred,model.fc2],#caps2_output_masked],
+        acc_batch, loss_batch, pred_batch, vector_batch = sess.run([model.accuracy, model.total_loss, model.y_pred,model.fc2],
                                                      feed_dict={model.X: x_b, model.Y: y_b})
         vector_all.append(vector_batch)
         pred_all = np.append(pred_all, pred_batch)
@@ -208,8 +272,8 @@ def evaluate(sess, model, x, y):
 def reconstruct_plot(x, y, x_reconst, y_pred, n_samples):
     fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
                             'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
-    sample_images = x.reshape(-1, args.img_w, args.img_h,args.n_ch)
-    reconst = x_reconst.reshape([-1, args.img_w, args.img_h,args.n_ch])
+    sample_images = x.reshape(-1, args.img_w, args.img_h)
+    reconst = x_reconst.reshape([-1, args.img_w, args.img_h])
 
     fig = plt.figure(figsize=(n_samples * 2, 3))
     for index in range(n_samples):
@@ -219,8 +283,6 @@ def reconstruct_plot(x, y, x_reconst, y_pred, n_samples):
             plt.title("Label:" + str(np.argmax(y[index])))
         elif args.dataset == 'fashion-mnist':
             plt.title("Label:" + fashion_mnist_labels[np.argmax(y[index])])
-        else:
-            plt.title("Label:" + str(np.argmax(y[index])))
         plt.axis("off")
     fig.savefig(args.results + args.dataset + '/' + 'input_images.png')
     plt.show()
@@ -233,8 +295,6 @@ def reconstruct_plot(x, y, x_reconst, y_pred, n_samples):
             plt.title("Predicted:" + str(y_pred[index]))
         elif args.dataset == 'fashion-mnist':
             plt.title("Pred:" + fashion_mnist_labels[y_pred[index]])
-        else:
-            plt.title("Label:" + str(np.argmax(y[index])))
         plt.axis("off")
     fig.savefig(args.results + args.dataset + '/' + 'reconstructed_images.png')
     plt.show()

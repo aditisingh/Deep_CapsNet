@@ -7,31 +7,33 @@ from utils import load_data, randomize, get_next_batch, save_to, load_and_save_t
 import os
 from sklearn.metrics import precision_recall_fscore_support as score
 
-#TO DO:
-# Normalize CapsNet data for brain : Done
-# Train again and visualize
-# Capsules what they learn
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2,3"
 
-def train(model):
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1,2,3"
+
+def train():
     x_train, y_train, x_valid, y_valid = load_data(dataset=args.dataset, mode='train')
+    model = CapsNet()
     print('Data set Loaded')
     num_train_batch = int(y_train.shape[0] / args.batch_size)
     if not os.path.exists(args.checkpoint_path + args.dataset):
         os.makedirs(args.checkpoint_path + args.dataset)
 
     with tf.Session() as sess:
+        saver = tf.train.Saver()
+        # print(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Masking'))
+        print(tf.global_variables())
         if args.restore_training:
-            saver = tf.train.Saver()
             ckpt = tf.train.get_checkpoint_state(args.checkpoint_path + args.dataset)
             saver.restore(sess, ckpt.model_checkpoint_path)
             print('Model Restored')
             start_epoch = int(str(ckpt.model_checkpoint_path).split('-')[-1])
             fd_train, fd_val, best_loss_val = load_and_save_to(start_epoch, num_train_batch)
         else:
-            saver = tf.train.Saver(tf.global_variables())
-            tf.global_variables_initializer().run()
+            init_op = tf.initialize_all_variables()
+            # saver = tf.train.Saver(tf.global_variables())
+            sess.run(init_op)
+            # tf.global_variables_initializer().run()
             print('All variables initialized')
             fd_train, fd_val = save_to()
             start_epoch = 0
@@ -75,7 +77,11 @@ def train(model):
                     loss_batch_all = np.append(loss_batch_all, loss_batch)
 
             # Run validation after each epoch
-            acc_val, loss_val, _ = evaluate(sess, model, x_valid, y_valid)
+            acc_val, loss_val, _, _ = evaluate(sess, model, x_valid, y_valid)
+            summary_val = tf.Summary(value=[tf.Summary.Value(tag='Validation Accuracy', simple_value=acc_val)])
+            train_writer.add_summary(summary_val, global_step)
+            summary_val = tf.Summary(value=[tf.Summary.Value(tag='Validation Loss', simple_value=loss_val)])
+            train_writer.add_summary(summary_val, global_step)
             fd_val.write(str(epoch + 1) + ',' + str(acc_val) + ',' + str(loss_val) + '\n')
             fd_val.flush()
             print('-----------------------------------------------------------------------------')
@@ -90,8 +96,9 @@ def train(model):
         fd_val.close()
 
 
-def test(model):
-    x_test, y_test, files_test = load_data(dataset=args.dataset, mode='test')
+def test():
+    model = CapsNet()
+    x_test, y_test,files_test = load_data(dataset=args.dataset, mode='test')
     print('Data set Loaded')
     fd_test = save_to()
     saver = tf.train.Saver()
@@ -100,9 +107,9 @@ def test(model):
         saver.restore(sess, ckpt.model_checkpoint_path)
         print('Model Restored')
         acc_test, loss_test, pred_test, vector_test = evaluate(sess, model, x_test, y_test)
+        #np.save('results_brain_new_all/brain/features_train.npy',vector_test)
+        #np.save('results_brain_new_all/brain/files_feat_train.npy',files_test)
         y_corr=np.argmax(y_test,axis=1)
-        np.save('results/brain/features_train.npy',vector_test)
-        np.save('results/brain/files_feat_train.npy',files_test)
         precision, recall, fscore, support = score(y_corr,pred_test)
         # df = {label + 'precision': precision1.tolist(), label + 'recall': recall1.tolist(),
         #       label + 'fscore': fscore1.tolist()}
@@ -110,26 +117,28 @@ def test(model):
         fd_test.flush()
         print('-----------------------------------------------------------------------------')
         print("Test loss: {0:.4f}, Test accuracy: {1:.01%}".format(loss_test, acc_test))
-        print('Non-Astrocytes Astrocytes')
+        print('Nucleus Neurons Astrocytes Oligodendrocytes Microglia Endothelials')
         print('Precision: ', precision)
         print('Recall   : ', recall)
         print('F-score  : ', fscore)
 
 
-def visualize(model, n_samples=5):
-    x_test, y_test = load_data(dataset=args.dataset, mode='test')
+def visualize(n_samples=5):
+    model = CapsNet()
+    x_test, y_test,files_test = load_data(dataset=args.dataset, mode='test')
     sample_images, sample_labels = x_test[:args.batch_size], y_test[:args.batch_size]
     saver = tf.train.Saver()
     ckpt = tf.train.get_checkpoint_state(args.checkpoint_path + args.dataset)
     with tf.Session() as sess:
         saver.restore(sess, ckpt.model_checkpoint_path)
         feed_dict_samples = {model.X: sample_images, model.Y: sample_labels}
-        decoder_out, y_pred, vectors = sess.run([model.decoder_output, model.y_pred,model.caps2_output_masked],
+        decoder_out, y_pred = sess.run([model.decoder_output, model.y_pred],
                                        feed_dict=feed_dict_samples)
     reconstruct_plot(sample_images, sample_labels, decoder_out, y_pred, n_samples)
 
 
-def adv_attack(model, max_epsilon, max_iter):
+def adv_attack(max_epsilon, max_iter):
+    model = CapsNet()
     x_test, y_test = load_data(dataset=args.dataset, mode='test')
     print('Data set Loaded')
     all_acc = all_loss = np.array([])
@@ -169,15 +178,14 @@ def adv_attack(model, max_epsilon, max_iter):
 
 
 def main(_):
-    model = CapsNet()
     if args.mode == 'train':
-        train(model)
+        train()
     elif args.mode == 'test':
-        test(model)
+        test()
     elif args.mode == 'visualize':
-        visualize(model, n_samples=args.n_samples)
+        visualize(n_samples=args.n_samples)
     elif args.mode == 'adv_attack':
-        adv_attack(model, max_epsilon=args.max_eps, max_iter=args.max_iter)
+        adv_attack(max_epsilon=args.max_eps, max_iter=args.max_iter)
 
 
 if __name__ == "__main__":

@@ -116,7 +116,8 @@ class CapsNet:
     def summary_(self):
         recon_img = tf.reshape(self.decoder_output, shape=(args.batch_size, args.img_w, args.img_h, args.n_ch))
         summary_list = [tf.summary.scalar('Loss/margin_loss', self.margin_loss),
-                        tf.summary.scalar('Loss/reconstruction_loss', self.reconstruction_err),
-                        tf.summary.image('original', self.X),
-                        tf.summary.image('reconstructed', recon_img)]
+                        tf.summary.scalar('Loss/reconstruction_loss', self.reconstruction_err)]
+
+                        # tf.summary.image('original', self.X),
+                        # tf.summary.image('reconstructed', recon_img)]
         self.summary_now = tf.summary.merge(summary_list)

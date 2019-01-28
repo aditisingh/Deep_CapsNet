@@ -13,8 +13,8 @@ parser.add_argument('--lambda_val', default=0.5, help='Down-weighting parameter 
 parser.add_argument('--alpha', default=0.0005, help='Regularization coefficient to scale down the reconstruction loss')
 
 # For training
-parser.add_argument('--mode', default='test', help='train, test, visualize, or adv_attack')
-parser.add_argument('--batch_size', default=50, help='Batch size')
+parser.add_argument('--mode', default='train', help='train, test, visualize, or adv_attack')
+parser.add_argument('--batch_size', default=256, help='Batch size')
 parser.add_argument('--epoch', default=500, help='Total number of training epochs')
 parser.add_argument('--iter_routing', default=3, help='Number of routing iterations')
 parser.add_argument('--stddev', default=0.01, help='std for W initializer')
@@ -22,16 +22,16 @@ parser.add_argument('--stddev', default=0.01, help='std for W initializer')
 
 # Data set info.
 parser.add_argument('--dataset', default='brain', help='dataset name, mnist or fashion-mnist')
-parser.add_argument('--n_cls', default=2, help='Total number of classes')
+parser.add_argument('--n_cls', default=6, help='Total number of classes')
 parser.add_argument('--img_w', default=28)
 parser.add_argument('--img_h', default=28)
-parser.add_argument('--n_ch', default=3, help='Number of input image channels')#1
+parser.add_argument('--n_ch', default=7, help='Number of input image channels')#1
 
 # Environment and result saving setting
 parser.add_argument('--restore_training', default=False, help='Restores the last trained model to resume training')
-parser.add_argument('--checkpoint_path', default='./saved_model/', help='path for saving the model checkpoints')
-parser.add_argument('--log_dir', default='./log_dir/', help='logs directory (to save graph and summaries)')
-parser.add_argument('--results', default='./results/', help='path for saving the results')
+parser.add_argument('--checkpoint_path', default='./saved_model_brain_7channel/', help='path for saving the model checkpoints')
+parser.add_argument('--log_dir', default='./log_dir_brain_7channel/', help='logs directory (to save graph and summaries)')
+parser.add_argument('--results', default='./results_brain_7channel/', help='path for saving the results')
 parser.add_argument('--tr_disp_sum', default=100, help='The frequency of saving train results (step)')
 
 # Visualize mode parameters
